@@ -1,0 +1,49 @@
+/* this compiles the c program to an executable linux file -- run this in the root folder directory*/
+gcc test.c -o test
+
+/* cd into build/ folder -- this command generates the makefiles -- targets linux (since it is the working env) */
+./premake5 gmake2
+
+/* this command targets windows */
+./premake5 gmake2 --os=windows
+
+/* navigate to root folder -- generates the linux executable file */
+make
+
+/* generates the windows exe file using mingw */
+make CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ config=release_x64
+
+/* some git things for changing the remote origin */
+git remote remove origin
+git remote -v
+git remote add origin <new_remote_url>
+
+
+/* Instructions to make a new raylib game */
+1. Clone the repo: https://github.com/raylib-extras/raylib-quickstart.git
+2. Rename the raylib directory that is cloned to the name of the game
+3. cd into the game directory
+4. run git remote remove origin
+5. run git remote add origin <new_remote_url>
+6. update .gitignore to include extra directories not related to game assets (.vscode, build/, build-*)
+7. git add / commit / push to the new repo
+
+/* Instructions to build a Linux game */
+1. In build/: ./premake5 gmake2 --it may download some library files
+2. In root: make
+3. Game is in bin/Debug/game --this is a linux file type
+
+*/ Instructions to build a Windows game */
+0.1. added filter at line 170 in premake5.lua
+0.2. modified src/application.rc to include the icon
+0.3. In root: x86_64-w64-mingw32-windres src/application.rc -O coff -o src/application.res
+0.4. Copied application.res to build/build_files/obj/x64/Release/asteroids-c/
+
+1. In build/: ./premake5 gmake2 --os=windows
+2. In root: make CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ config=release_x64
+3. Game is in bin/Release/game.exe
+
+
+-- added this filter for make compilation line 170
+    filter {"system:windows"}
+        files {"../src/*.rc", "../src/*.ico"}
