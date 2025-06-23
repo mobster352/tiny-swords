@@ -41,27 +41,26 @@ void drawTextWithVector2(char *text, Vector2 value, int posX, int posY, int font
 * Returns:
 * Vector2: the position of the sprite as a Vector2
 */
-Vector2 findSprite(int xIndex, int yIndex){
-	return (Vector2){xIndex * SPRITE_SIZE, yIndex * SPRITE_SIZE};
+// Vector2 findSprite(int xIndex, int yIndex){
+// 	return (Vector2){xIndex * SPRITE_SIZE, yIndex * SPRITE_SIZE};
+// }
+int findSprite(int xIndex){
+	return xIndex * SPRITE_SIZE;
 }
 
 void playAnimationLoop(Texture atlas, Rectangle sourceRec, Rectangle destRec, Vector2 origin, int animation, int *xIndex){
-	Vector2 sprite = findSprite(*xIndex, animation);
-	sourceRec.x = sprite.x;
-	sourceRec.y = sprite.y;
+	sourceRec.x = findSprite(*xIndex);
 	DrawTexturePro(atlas, sourceRec, destRec, origin, 0.0f, WHITE);
 	(*xIndex)++;
-	if(*xIndex > ANIMATION_STEPS)
+	if(*xIndex > animationSteps[animation])
 		*xIndex = 0;
 }
 
 void playAnimationOnce(Texture atlas, Rectangle sourceRec, Rectangle destRec, Vector2 origin, int *animation, int *xIndex, bool *isOnceAnimationPlaying){
-	Vector2 sprite = findSprite(*xIndex, *animation);
-	sourceRec.x = sprite.x;
-	sourceRec.y = sprite.y;
+	sourceRec.x = findSprite(*xIndex);
 	DrawTexturePro(atlas, sourceRec, destRec, origin, 0.0f, WHITE);
 	(*xIndex)++;
-	if(*xIndex > ANIMATION_STEPS){
+	if(*xIndex > animationSteps[*animation]){
 		*xIndex = 0;
 		*animation = IDLE_ANIMATION;
 		*isOnceAnimationPlaying = false;
@@ -76,27 +75,38 @@ void changeAnimation(int *xIndex, int *animation, int newAnimation){
 int main ()
 {
 	// Tell the window to use vsync and work on high DPI displays
-	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
+	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI | FLAG_WINDOW_UNDECORATED);
+
+	//ToggleBorderlessWindowed();
 
 	// Create the window and OpenGL context
-	InitWindow(1280, 800, "Hello Raylib");
+	InitWindow(1280, 768, "Hello Raylib");
 
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
 
-	SetTargetFPS(10); //the sprites were made to be 10 fps / 100ms
+	SetTargetFPS(12); //the sprites were made to be 10 fps / 100ms
+	SetWindowFocused();
 
 
 
 	// Assuming you have a texture called 'atlas' loaded
-	Texture playerAtlas = LoadTexture("Warrior_Blue.png");
+	// Texture playerAtlas = LoadTexture("Warrior_Blue.png");
+	Texture playerIdleAtlas = LoadTexture("Warrior_Idle.png");
+	Texture playerRunAtlas = LoadTexture("Warrior_Run.png");
+	Texture playerAttack1Atlas = LoadTexture("Warrior_Attack1.png");
+
 	Rectangle sourceRec = { 0, 0, 192, 192 }; // Example: First sprite in the sheet
 	Rectangle destRec = { 100, 100, 192, 192 }; // Example: Draw at (100, 100)
 	Vector2 origin = { 0.0f, 0.0f }; // Optional origin point
 
-	Texture groundAtlas = LoadTexture("Tilemap_Flat.png");
-	Rectangle groundSourceRec = { 0, 0, 192, 192 }; // Example: First sprite in the sheet
-	Rectangle groundDestRec = { 0, 0, 192, 192 }; // Example: Draw at (100, 100)
+	// Texture groundAtlas = LoadTexture("Tilemap_Flat.png");
+	// Rectangle groundSourceRec = { 0, 0, 192, 192 }; // Example: First sprite in the sheet
+	// Rectangle groundDestRec = { 0, 0, 192, 192 }; // Example: Draw at (100, 100)
+
+	Texture testMapAtlas = LoadTexture("test_map2.png");
+	Texture background = LoadTexture("Water Background color.png");
+	Rectangle backgroundRec = {0,0,1280,768};
 
 	int xIndex = 0;
 	int yIndex = 0;
@@ -126,14 +136,18 @@ int main ()
 		// Setup the back buffer for drawing (clear color and depth buffers)
 		ClearBackground(BLACK);
 
-		drawTextWithVector2("Pos: ", GetMousePosition(), 1100, 780, 20, WHITE);
+		DrawTexturePro(background, backgroundRec, backgroundRec, origin, 0, WHITE);
 
-		for(int i=0; i<7; i++){
-			for(int j=0; j<5; j++){
-				Rectangle dest = {192 * i, 192 * j, 192, 192};
-				DrawTexturePro(groundAtlas, groundSourceRec, dest, origin, 0, WHITE);
-			}
-		}
+		DrawTexture(testMapAtlas, 0, 0, WHITE);
+
+		drawTextWithVector2("Pos: ", GetMousePosition(), 1100, 748, 20, WHITE);
+
+		// for(int i=0; i<7; i++){
+		// 	for(int j=0; j<5; j++){
+		// 		Rectangle dest = {192 * i, 192 * j, 192, 192};
+		// 		DrawTexturePro(groundAtlas, groundSourceRec, dest, origin, 0, WHITE);
+		// 	}
+		// }
 
 		// Draw the sprite
 		// Vector2 sprite = findSprite(xIndex, yIndex);
@@ -150,8 +164,8 @@ int main ()
 		// }
 
 		if(IsKeyDown(KEY_D) && !isOnceAnimationPlaying){
-			if(animation != WALK_ANIMATION)
-				changeAnimation(&xIndex, &animation, WALK_ANIMATION);
+			if(animation != RUN_ANIMATION)
+				changeAnimation(&xIndex, &animation, RUN_ANIMATION);
 			if(hValue){
 				sourceRec.width = -sourceRec.width;
 				hValue = false;
@@ -162,8 +176,8 @@ int main ()
 			player.collider.y = player.transform2D.position.y + COLLIDER_HEIGHT_SIZING/SPRITE_DIVISOR;
 		}
 		if(IsKeyDown(KEY_A) && !isOnceAnimationPlaying){
-			if(animation != WALK_ANIMATION)
-				changeAnimation(&xIndex, &animation, WALK_ANIMATION);
+			if(animation != RUN_ANIMATION)
+				changeAnimation(&xIndex, &animation, RUN_ANIMATION);
 			if(!hValue){
 				sourceRec.width = -sourceRec.width;
 				hValue = true;
@@ -174,16 +188,16 @@ int main ()
 			player.collider.y = player.transform2D.position.y + COLLIDER_HEIGHT_SIZING/SPRITE_DIVISOR;
 		}
 		if(IsKeyDown(KEY_W) && !isOnceAnimationPlaying){
-			if(animation != WALK_ANIMATION)
-				changeAnimation(&xIndex, &animation, WALK_ANIMATION);
+			if(animation != RUN_ANIMATION)
+				changeAnimation(&xIndex, &animation, RUN_ANIMATION);
 			unitVector = (Vector2){0,-1};
 			player.transform2D.position = Vector2Add(player.transform2D.position, Vector2Scale(unitVector, PLAYER_SPEED * GetFrameTime()));
 			player.collider.x = player.transform2D.position.x + COLLIDER_WIDTH_SIZING/SPRITE_DIVISOR;
 			player.collider.y = player.transform2D.position.y + COLLIDER_HEIGHT_SIZING/SPRITE_DIVISOR;
 		}
 		if(IsKeyDown(KEY_S) && !isOnceAnimationPlaying){
-			if(animation != WALK_ANIMATION)
-				changeAnimation(&xIndex, &animation, WALK_ANIMATION);
+			if(animation != RUN_ANIMATION)
+				changeAnimation(&xIndex, &animation, RUN_ANIMATION);
 			unitVector = (Vector2){0,1};
 			player.transform2D.position = Vector2Add(player.transform2D.position, Vector2Scale(unitVector, PLAYER_SPEED * GetFrameTime()));
 			player.collider.x = player.transform2D.position.x + COLLIDER_WIDTH_SIZING/SPRITE_DIVISOR;
@@ -193,21 +207,33 @@ int main ()
 		destRec = (Rectangle){ player.transform2D.position.x, player.transform2D.position.y, SPRITE_SIZE/SPRITE_DIVISOR, SPRITE_SIZE/SPRITE_DIVISOR };
 
 		//Idle Animation
-		if(isLooping[animation] && !isOnceAnimationPlaying)
-			playAnimationLoop(playerAtlas, sourceRec, destRec, origin, animation, &xIndex);
-		else
-			playAnimationOnce(playerAtlas, sourceRec, destRec, origin, &animation, &xIndex, &isOnceAnimationPlaying);
+		if(animation == IDLE_ANIMATION){
+			playAnimationLoop(playerIdleAtlas, sourceRec, destRec, origin, animation, &xIndex);
+		}
+		else if(animation == RUN_ANIMATION){
+			playAnimationLoop(playerRunAtlas, sourceRec, destRec, origin, animation, &xIndex);
+		}
+		else if(animation == ATTACK1_ANIMATION){
+			playAnimationOnce(playerAttack1Atlas, sourceRec, destRec, origin, &animation, &xIndex, &isOnceAnimationPlaying);
+		}
+		// if(isLooping[animation] && !isOnceAnimationPlaying)
+		// 	playAnimationLoop(playerIdleAtlas, sourceRec, destRec, origin, animation, &xIndex);
+		// else
+		// 	playAnimationOnce(playerIdleAtlas, sourceRec, destRec, origin, &animation, &xIndex, &isOnceAnimationPlaying);
+
+
 
 		if(IsKeyReleased(KEY_D) || IsKeyReleased(KEY_A) || IsKeyReleased(KEY_W) || IsKeyReleased(KEY_S)){
 			changeAnimation(&xIndex, &animation, IDLE_ANIMATION);
 		}
 		if(IsKeyPressed(KEY_SPACE)){
-			if(Vector2Equals(unitVector, (Vector2){1,0}) || Vector2Equals(unitVector, (Vector2){-1,0}))
-				changeAnimation(&xIndex, &animation, HOOK_ANIMATION);
-			else if(Vector2Equals(unitVector, (Vector2){0,-1}))
-				changeAnimation(&xIndex, &animation, UP_SLASH_RIGHT_ANIMATION);
-			else if(Vector2Equals(unitVector, (Vector2){0,1}))
-				changeAnimation(&xIndex, &animation, DOWN_SLASH_RIGHT_ANIMATION);
+			// if(Vector2Equals(unitVector, (Vector2){1,0}) || Vector2Equals(unitVector, (Vector2){-1,0}))
+			// 	changeAnimation(&xIndex, &animation, HOOK_ANIMATION);
+			// else if(Vector2Equals(unitVector, (Vector2){0,-1}))
+			// 	changeAnimation(&xIndex, &animation, UP_SLASH_RIGHT_ANIMATION);
+			// else if(Vector2Equals(unitVector, (Vector2){0,1}))
+			// 	changeAnimation(&xIndex, &animation, DOWN_SLASH_RIGHT_ANIMATION);
+			changeAnimation(&xIndex, &animation, ATTACK1_ANIMATION);
 			isOnceAnimationPlaying = true;
 		}
 
@@ -220,7 +246,11 @@ int main ()
 
 	// cleanup
 	// unload our texture so it can be cleaned up
-	UnloadTexture(playerAtlas);
+	UnloadTexture(playerIdleAtlas);
+	UnloadTexture(playerRunAtlas);
+	UnloadTexture(playerAttack1Atlas);
+	UnloadTexture(testMapAtlas);
+	UnloadTexture(background);
 
 	// destroy the window and cleanup the OpenGL context
 	CloseWindow();
