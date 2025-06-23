@@ -48,18 +48,36 @@ int findSprite(int xIndex){
 	return xIndex * SPRITE_SIZE;
 }
 
-void playAnimationLoop(Texture atlas, Rectangle sourceRec, Rectangle destRec, Vector2 origin, int animation, int *xIndex){
+void playAnimationLoop(Texture atlas, Rectangle sourceRec, Rectangle destRec, Vector2 origin, int animation, int *xIndex, float *animationTimer, float animationSpeed){
+	// Update the animation timer
+	*animationTimer += GetFrameTime();
+
+	// Check if it's time to advance to the next frame
+	if (*animationTimer >= animationSpeed) {
+		*xIndex = (*xIndex + 1) % animationSteps[animation];
+		*animationTimer = 0.0f;
+	}
+	
 	sourceRec.x = findSprite(*xIndex);
 	DrawTexturePro(atlas, sourceRec, destRec, origin, 0.0f, WHITE);
-	(*xIndex)++;
+	// (*xIndex)++;
 	if(*xIndex > animationSteps[animation])
 		*xIndex = 0;
 }
 
-void playAnimationOnce(Texture atlas, Rectangle sourceRec, Rectangle destRec, Vector2 origin, int *animation, int *xIndex, bool *isOnceAnimationPlaying){
+void playAnimationOnce(Texture atlas, Rectangle sourceRec, Rectangle destRec, Vector2 origin, int *animation, int *xIndex, bool *isOnceAnimationPlaying, float *animationTimer, float animationSpeed){
+	// Update the animation timer
+	*animationTimer += GetFrameTime();
+
+	// Check if it's time to advance to the next frame
+	if (*animationTimer >= animationSpeed) {
+		*xIndex = (*xIndex + 1) % animationSteps[*animation];
+		*animationTimer = 0.0f;
+	}
+	
 	sourceRec.x = findSprite(*xIndex);
 	DrawTexturePro(atlas, sourceRec, destRec, origin, 0.0f, WHITE);
-	(*xIndex)++;
+	// (*xIndex)++;
 	if(*xIndex > animationSteps[*animation]){
 		*xIndex = 0;
 		*animation = IDLE_ANIMATION;
@@ -85,7 +103,7 @@ int main ()
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
 
-	SetTargetFPS(12); //the sprites were made to be 10 fps / 100ms
+	SetTargetFPS(60); //the sprites were made to be 10 fps / 100ms
 	SetWindowFocused();
 
 
@@ -104,7 +122,7 @@ int main ()
 	// Rectangle groundSourceRec = { 0, 0, 192, 192 }; // Example: First sprite in the sheet
 	// Rectangle groundDestRec = { 0, 0, 192, 192 }; // Example: Draw at (100, 100)
 
-	Texture testMapAtlas = LoadTexture("test_map2.png");
+	Texture testMapAtlas = LoadTexture("map.png");
 	Texture background = LoadTexture("Water Background color.png");
 	Rectangle backgroundRec = {0,0,1280,768};
 
@@ -126,12 +144,32 @@ int main ()
 			SPRITE_SIZE/2.5f
 		}
 	};
+
+	Vector2 offset = Vector2Zero();         // Camera offset (displacement from target)
+    Vector2 target = Vector2Zero();         // Camera target (rotation and zoom origin)
+    float rotation = 0.0f;         // Camera rotation in degrees
+    float zoom = 1.0f;             // Camera zoom (scaling), should be 1.0f by default
+
+	Camera2D camera = {
+		offset,
+		target,
+		rotation,
+		zoom
+	};
+
+	float animationTimer = 0.0f;
+	float animationSpeed = 0.1f; // 60 fps / need 10 fps for animation
 	
 	// game loop
 	while (!WindowShouldClose())		// run the loop untill the user presses ESCAPE or presses the Close button on the window
 	{
+		float cameraX = (player.collider.x-GetScreenWidth()/2) + player.collider.width/2;
+		float cameraY = (player.collider.y-GetScreenHeight()/2) + player.collider.height/2;
+		camera.target = (Vector2){cameraX, cameraY};  
 		// drawing
 		BeginDrawing();
+
+		BeginMode2D(camera);
 
 		// Setup the back buffer for drawing (clear color and depth buffers)
 		ClearBackground(BLACK);
@@ -208,13 +246,13 @@ int main ()
 
 		//Idle Animation
 		if(animation == IDLE_ANIMATION){
-			playAnimationLoop(playerIdleAtlas, sourceRec, destRec, origin, animation, &xIndex);
+			playAnimationLoop(playerIdleAtlas, sourceRec, destRec, origin, animation, &xIndex, &animationTimer, animationSpeed);
 		}
 		else if(animation == RUN_ANIMATION){
-			playAnimationLoop(playerRunAtlas, sourceRec, destRec, origin, animation, &xIndex);
+			playAnimationLoop(playerRunAtlas, sourceRec, destRec, origin, animation, &xIndex, &animationTimer, animationSpeed);
 		}
 		else if(animation == ATTACK1_ANIMATION){
-			playAnimationOnce(playerAttack1Atlas, sourceRec, destRec, origin, &animation, &xIndex, &isOnceAnimationPlaying);
+			playAnimationOnce(playerAttack1Atlas, sourceRec, destRec, origin, &animation, &xIndex, &isOnceAnimationPlaying, &animationTimer, animationSpeed);
 		}
 		// if(isLooping[animation] && !isOnceAnimationPlaying)
 		// 	playAnimationLoop(playerIdleAtlas, sourceRec, destRec, origin, animation, &xIndex);
@@ -239,6 +277,8 @@ int main ()
 
 		//debug collider
 		DrawRectangleLines(player.collider.x, player.collider.y, player.collider.width/SPRITE_DIVISOR, player.collider.height/SPRITE_DIVISOR, RED);
+
+		EndMode2D();
 		
 		// end the frame and get ready for the next one  (display frame, poll input, etc...)
 		EndDrawing();
